@@ -1,9 +1,9 @@
 (() => {
   const SYMBOL_POOL = [
-    "🐶", "🍕", "🚗", "🎮", "⭐", "🍎", "🌈", "🦋",
-    "🎵", "🚀", "🌻", "🍩", "⚽", "🧩", "🦄", "🍉",
-    "🐱", "🎯", "🍔", "🚲", "🌙", "🎲", "🍓", "🛸",
-    "🐼", "🎈", "🥕", "🏀", "🍪", "🪐", "🌵", "🎹"
+    "\uD83D\uDC36", "\uD83C\uDF55", "\uD83D\uDE97", "\uD83C\uDFAE", "\u2B50", "\uD83C\uDF4E", "\uD83C\uDF08", "\uD83E\uDD8B",
+    "\uD83C\uDFB5", "\uD83D\uDE80", "\uD83C\uDF3B", "\uD83C\uDF69", "\u26BD", "\uD83E\uDDE9", "\uD83E\uDD84", "\uD83C\uDF49",
+    "\uD83D\uDC31", "\uD83C\uDFAF", "\uD83C\uDF54", "\uD83D\uDEB2", "\uD83C\uDF19", "\uD83C\uDFB2", "\uD83C\uDF53", "\uD83D\uDEF8",
+    "\uD83D\uDC3C", "\uD83C\uDF88", "\uD83E\uDD55", "\uD83C\uDFC0", "\uD83C\uDF6A", "\uD83E\uDE90", "\uD83C\uDF35", "\uD83C\uDFB9"
   ];
 
   const DIFFICULTY_SETTINGS = {
@@ -12,7 +12,7 @@
     hard: { label: "Hard", size: 8, pairs: 32 }
   };
 
-  // Centralized game state keeps the logic predictable and easy to follow.
+  // Centralized state keeps the app predictable and prevents scattered globals.
   const state = {
     difficulty: "easy",
     cards: [],
@@ -28,6 +28,7 @@
 
   const elements = {
     board: document.getElementById("gameBoard"),
+    boardMessage: document.getElementById("boardMessage"),
     movesValue: document.getElementById("movesValue"),
     timerValue: document.getElementById("timerValue"),
     bestScoreValue: document.getElementById("bestScoreValue"),
@@ -43,12 +44,32 @@
   };
 
   function initialize() {
-    loadTheme();
-    attachEvents();
-    startNewGame();
+    try {
+      validateRequiredElements();
+      showBoardMessage("Loading cards...");
+      loadTheme();
+      attachEvents();
+      startNewGame();
+      console.info("[MemoryGame] Initialized successfully.");
+    } catch (error) {
+      reportError("Game initialization failed.", error, true);
+    }
+  }
+
+  function validateRequiredElements() {
+    const missingEntries = Object.entries(elements)
+      .filter(([, element]) => !element)
+      .map(([key]) => key);
+
+    if (missingEntries.length > 0) {
+      throw new Error(`Missing required DOM elements: ${missingEntries.join(", ")}`);
+    }
   }
 
   function attachEvents() {
+    elements.board.addEventListener("click", handleBoardInteraction);
+    elements.board.addEventListener("touchend", handleBoardInteraction, { passive: false });
+
     elements.difficultySelect.addEventListener("change", (event) => {
       state.difficulty = event.target.value;
       startNewGame();
@@ -69,13 +90,18 @@
   }
 
   function startNewGame() {
-    resetGameState();
-    buildDeck();
-    renderBoard();
-    updateStats();
-    updateBestScore();
-    setStatus(`Ready for a ${DIFFICULTY_SETTINGS[state.difficulty].label.toLowerCase()} game. Flip a card to begin.`);
-    closeModal();
+    try {
+      resetGameState();
+      showBoardMessage("Loading cards...");
+      buildDeck();
+      renderBoard();
+      updateStats();
+      updateBestScore();
+      setStatus(`Ready for a ${DIFFICULTY_SETTINGS[state.difficulty].label.toLowerCase()} game. Flip a card to begin.`);
+      closeModal();
+    } catch (error) {
+      reportError("Unable to start a new game.", error, true);
+    }
   }
 
   function resetGameState() {
@@ -91,14 +117,23 @@
 
   function buildDeck() {
     const config = DIFFICULTY_SETTINGS[state.difficulty];
+
+    if (!config) {
+      throw new Error(`Unsupported difficulty: ${state.difficulty}`);
+    }
+
     const selectedSymbols = SYMBOL_POOL.slice(0, config.pairs);
-    const deck = [...selectedSymbols, ...selectedSymbols]
-      .map((symbol, index) => ({
-        id: `${symbol}-${index}-${Math.random().toString(16).slice(2, 8)}`,
-        symbol,
-        isFlipped: false,
-        isMatched: false
-      }));
+
+    if (selectedSymbols.length !== config.pairs) {
+      throw new Error(`Not enough symbols available for ${config.label}.`);
+    }
+
+    const deck = [...selectedSymbols, ...selectedSymbols].map((symbol, index) => ({
+      id: `${state.difficulty}-${index}-${Math.random().toString(16).slice(2, 8)}`,
+      symbol,
+      isFlipped: false,
+      isMatched: false
+    }));
 
     state.cards = shuffle(deck);
   }
@@ -106,7 +141,7 @@
   function shuffle(items) {
     const shuffled = [...items];
 
-    // Fisher-Yates shuffle randomizes the deck fairly.
+    // Fisher-Yates gives an unbiased random deck.
     for (let index = shuffled.length - 1; index > 0; index -= 1) {
       const randomIndex = Math.floor(Math.random() * (index + 1));
       [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
@@ -117,6 +152,13 @@
 
   function renderBoard() {
     const config = DIFFICULTY_SETTINGS[state.difficulty];
+
+    if (!Array.isArray(state.cards) || state.cards.length === 0) {
+      showBoardMessage("No cards available. Restart the game to try again.");
+      console.warn("[MemoryGame] renderBoard called with no cards.");
+      return;
+    }
+
     elements.board.innerHTML = "";
     elements.board.className = `game-board board-${state.difficulty}`;
     elements.board.setAttribute("aria-label", `${config.label} board with ${config.size * config.size} cards`);
@@ -138,11 +180,26 @@
         </span>
       `;
 
-      button.addEventListener("click", () => handleCardClick(card.id));
       fragment.appendChild(button);
     });
 
     elements.board.appendChild(fragment);
+    hideBoardMessage();
+    console.info(`[MemoryGame] Rendered ${state.cards.length} cards for ${state.difficulty}.`);
+  }
+
+  function handleBoardInteraction(event) {
+    const cardButton = event.target.closest(".memory-card");
+
+    if (!cardButton || !elements.board.contains(cardButton)) {
+      return;
+    }
+
+    if (event.type === "touchend") {
+      event.preventDefault();
+    }
+
+    handleCardClick(cardButton.dataset.cardId);
   }
 
   function handleCardClick(cardId) {
@@ -172,12 +229,13 @@
     card.isFlipped = true;
     const cardElement = findCardElement(card.id);
 
-    if (cardElement) {
-      cardElement.classList.add("is-flipped");
-      cardElement.setAttribute("aria-label", `Revealed card ${card.symbol}`);
+    if (!cardElement) {
+      throw new Error(`Card element not found for ${card.id}`);
     }
 
-    playTone(card.isMatched ? 540 : 440, 0.05, "triangle", 0.03);
+    cardElement.classList.add("is-flipped");
+    cardElement.setAttribute("aria-label", `Revealed card ${card.symbol}`);
+    playTone(440, 0.05, "triangle", 0.03);
   }
 
   function checkForMatch() {
@@ -266,6 +324,17 @@
     elements.statusMessage.textContent = message;
   }
 
+  function showBoardMessage(message) {
+    elements.boardMessage.textContent = message;
+    elements.boardMessage.classList.add("is-visible");
+    elements.board.classList.add("is-hidden");
+  }
+
+  function hideBoardMessage() {
+    elements.boardMessage.classList.remove("is-visible");
+    elements.board.classList.remove("is-hidden");
+  }
+
   function startTimer() {
     stopTimer();
     state.timerId = window.setInterval(() => {
@@ -319,6 +388,7 @@
       const rawValue = localStorage.getItem(getBestScoreKey());
       return rawValue ? JSON.parse(rawValue) : null;
     } catch (error) {
+      reportError("Best score could not be read from localStorage.", error, false);
       return null;
     }
   }
@@ -342,17 +412,19 @@
     try {
       localStorage.setItem("memory-match-theme", state.theme);
     } catch (error) {
-      // Ignore storage issues and keep the in-memory preference.
+      reportError("Theme preference could not be saved.", error, false);
     }
   }
 
   function loadTheme() {
     try {
       const savedTheme = localStorage.getItem("memory-match-theme");
+
       if (savedTheme === "dark" || savedTheme === "light") {
         state.theme = savedTheme;
       }
     } catch (error) {
+      reportError("Theme preference could not be loaded.", error, false);
       state.theme = "light";
     }
 
@@ -363,8 +435,20 @@
     const isDark = state.theme === "dark";
     document.body.classList.toggle("dark-theme", isDark);
     elements.themeToggle.setAttribute("aria-pressed", String(isDark));
-    elements.themeToggleIcon.textContent = isDark ? "☀️" : "🌙";
+    elements.themeToggleIcon.textContent = isDark ? "\u2600\uFE0F" : "\uD83C\uDF19";
     elements.themeToggleLabel.textContent = isDark ? "Light Mode" : "Dark Mode";
+  }
+
+  function reportError(message, error, showFallback = false) {
+    console.error(`[MemoryGame] ${message}`, error);
+
+    if (showFallback && elements.boardMessage && elements.board) {
+      showBoardMessage("Unable to load the game board. Check the console and refresh the page.");
+    }
+
+    if (elements.statusMessage) {
+      elements.statusMessage.textContent = "Something went wrong. Open the console for details.";
+    }
   }
 
   function playTone(frequency, duration, type = "sine", volume = 0.04) {
@@ -381,7 +465,9 @@
     const context = playTone.audioContext;
 
     if (context.state === "suspended") {
-      context.resume().catch(() => {});
+      context.resume().catch((error) => {
+        reportError("Audio context could not resume.", error, false);
+      });
     }
 
     const oscillator = context.createOscillator();
@@ -400,5 +486,9 @@
     oscillator.stop(startTime + duration);
   }
 
-  initialize();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialize, { once: true });
+  } else {
+    initialize();
+  }
 })();
