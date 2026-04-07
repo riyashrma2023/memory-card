@@ -12,7 +12,6 @@
     hard: { label: "Hard", size: 8, pairs: 32 }
   };
 
-  // Centralized state keeps the app predictable and prevents scattered globals.
   const state = {
     difficulty: "easy",
     cards: [],
@@ -26,25 +25,11 @@
     theme: "light"
   };
 
-  const elements = {
-    board: document.getElementById("gameBoard"),
-    boardMessage: document.getElementById("boardMessage"),
-    movesValue: document.getElementById("movesValue"),
-    timerValue: document.getElementById("timerValue"),
-    bestScoreValue: document.getElementById("bestScoreValue"),
-    difficultySelect: document.getElementById("difficultySelect"),
-    restartButton: document.getElementById("restartButton"),
-    statusMessage: document.getElementById("statusMessage"),
-    winModal: document.getElementById("winModal"),
-    winSummary: document.getElementById("winSummary"),
-    playAgainButton: document.getElementById("playAgainButton"),
-    themeToggle: document.getElementById("themeToggle"),
-    themeToggleIcon: document.querySelector(".theme-toggle__icon"),
-    themeToggleLabel: document.querySelector(".theme-toggle__label")
-  };
+  const elements = {};
 
   function initialize() {
     try {
+      cacheElements();
       validateRequiredElements();
       showBoardMessage("Loading cards...");
       loadTheme();
@@ -54,6 +39,23 @@
     } catch (error) {
       reportError("Game initialization failed.", error, true);
     }
+  }
+
+  function cacheElements() {
+    elements.board = document.getElementById("gameBoard");
+    elements.boardMessage = document.getElementById("boardMessage");
+    elements.movesValue = document.getElementById("movesValue");
+    elements.timerValue = document.getElementById("timerValue");
+    elements.bestScoreValue = document.getElementById("bestScoreValue");
+    elements.difficultySelect = document.getElementById("difficultySelect");
+    elements.restartButton = document.getElementById("restartButton");
+    elements.statusMessage = document.getElementById("statusMessage");
+    elements.winModal = document.getElementById("winModal");
+    elements.winSummary = document.getElementById("winSummary");
+    elements.playAgainButton = document.getElementById("playAgainButton");
+    elements.themeToggle = document.getElementById("themeToggle");
+    elements.themeToggleIcon = document.querySelector(".theme-toggle__icon");
+    elements.themeToggleLabel = document.querySelector(".theme-toggle__label");
   }
 
   function validateRequiredElements() {
@@ -67,26 +69,39 @@
   }
 
   function attachEvents() {
-    elements.board.addEventListener("click", handleBoardInteraction);
-    elements.board.addEventListener("touchend", handleBoardInteraction, { passive: false });
-
-    elements.difficultySelect.addEventListener("change", (event) => {
-      state.difficulty = event.target.value;
-      startNewGame();
-    });
-
+    elements.board.addEventListener("touchend", handleBoardTouch, { passive: false });
+    elements.difficultySelect.addEventListener("change", handleDifficultyChange);
     elements.restartButton.addEventListener("click", startNewGame);
-    elements.playAgainButton.addEventListener("click", () => {
-      closeModal();
-      startNewGame();
-    });
-
+    elements.playAgainButton.addEventListener("click", handlePlayAgain);
     elements.themeToggle.addEventListener("click", toggleTheme);
-    elements.winModal.addEventListener("click", (event) => {
-      if (event.target === elements.winModal) {
-        closeModal();
-      }
-    });
+    elements.winModal.addEventListener("click", handleModalClick);
+  }
+
+  function handleBoardTouch(event) {
+    const cardButton = event.target.closest(".memory-card");
+
+    if (!cardButton || !elements.board.contains(cardButton)) {
+      return;
+    }
+
+    event.preventDefault();
+    handleCardClick(cardButton.dataset.cardId);
+  }
+
+  function handleDifficultyChange(event) {
+    state.difficulty = event.target.value;
+    startNewGame();
+  }
+
+  function handlePlayAgain() {
+    closeModal();
+    startNewGame();
+  }
+
+  function handleModalClick(event) {
+    if (event.target === elements.winModal) {
+      closeModal();
+    }
   }
 
   function startNewGame() {
@@ -141,7 +156,6 @@
   function shuffle(items) {
     const shuffled = [...items];
 
-    // Fisher-Yates gives an unbiased random deck.
     for (let index = shuffled.length - 1; index > 0; index -= 1) {
       const randomIndex = Math.floor(Math.random() * (index + 1));
       [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
@@ -170,8 +184,8 @@
       button.className = "memory-card";
       button.type = "button";
       button.dataset.cardId = card.id;
-      button.dataset.symbol = card.symbol;
       button.setAttribute("aria-label", "Hidden memory card");
+      button.addEventListener("click", () => handleCardClick(card.id));
 
       button.innerHTML = `
         <span class="memory-card__inner">
@@ -188,40 +202,30 @@
     console.info(`[MemoryGame] Rendered ${state.cards.length} cards for ${state.difficulty}.`);
   }
 
-  function handleBoardInteraction(event) {
-    const cardButton = event.target.closest(".memory-card");
-
-    if (!cardButton || !elements.board.contains(cardButton)) {
-      return;
-    }
-
-    if (event.type === "touchend") {
-      event.preventDefault();
-    }
-
-    handleCardClick(cardButton.dataset.cardId);
-  }
-
   function handleCardClick(cardId) {
-    const selectedCard = state.cards.find((card) => card.id === cardId);
+    try {
+      const selectedCard = state.cards.find((card) => card.id === cardId);
 
-    if (!selectedCard || state.isBoardLocked || selectedCard.isFlipped || selectedCard.isMatched) {
-      return;
-    }
+      if (!selectedCard || state.isBoardLocked || selectedCard.isFlipped || selectedCard.isMatched) {
+        return;
+      }
 
-    if (!state.hasStarted) {
-      state.hasStarted = true;
-      startTimer();
-      setStatus("Timer started. Keep matching pairs.");
-    }
+      if (!state.hasStarted) {
+        state.hasStarted = true;
+        startTimer();
+        setStatus("Timer started. Keep matching pairs.");
+      }
 
-    flipCard(selectedCard);
-    state.flippedCards.push(selectedCard);
+      flipCard(selectedCard);
+      state.flippedCards.push(selectedCard);
 
-    if (state.flippedCards.length === 2) {
-      state.moves += 1;
-      updateStats();
-      checkForMatch();
+      if (state.flippedCards.length === 2) {
+        state.moves += 1;
+        updateStats();
+        checkForMatch();
+      }
+    } catch (error) {
+      reportError("Card click failed.", error, false);
     }
   }
 
@@ -304,10 +308,6 @@
     saveBestScore();
     updateBestScore();
     setStatus("Board cleared. Open the results and go again.");
-    playTone(523.25, 0.12, "triangle", 0.05);
-
-    window.setTimeout(() => playTone(659.25, 0.12, "triangle", 0.05), 120);
-    window.setTimeout(() => playTone(783.99, 0.18, "triangle", 0.05), 240);
 
     const difficultyLabel = DIFFICULTY_SETTINGS[state.difficulty].label;
     elements.winSummary.textContent =
