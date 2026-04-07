@@ -187,12 +187,22 @@
       button.setAttribute("aria-label", "Hidden memory card");
       button.addEventListener("click", () => handleCardClick(card.id));
 
-      button.innerHTML = `
-        <span class="memory-card__inner">
-          <span class="memory-card__face memory-card__face--back" aria-hidden="true">?</span>
-          <span class="memory-card__face memory-card__face--front" aria-hidden="true">${card.symbol}</span>
-        </span>
-      `;
+      const inner = document.createElement("span");
+      inner.className = "memory-card__inner";
+
+      const backFace = document.createElement("span");
+      backFace.className = "memory-card__face memory-card__face--back";
+      backFace.setAttribute("aria-hidden", "true");
+      backFace.textContent = "?";
+
+      const frontFace = document.createElement("span");
+      frontFace.className = "memory-card__face memory-card__face--front";
+      frontFace.setAttribute("aria-hidden", "true");
+      frontFace.textContent = card.symbol;
+
+      inner.appendChild(backFace);
+      inner.appendChild(frontFace);
+      button.appendChild(inner);
 
       fragment.appendChild(button);
     });
