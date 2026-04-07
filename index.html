@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Card Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero__copy">
+        <p class="eyebrow">Browser Game</p>
+        <h1>Memory Match</h1>
+        <p class="hero__text">
+          Flip cards, find every pair, and beat your best time. Pick a difficulty,
+          stay sharp, and enjoy a smooth casual challenge on any screen.
+        </p>
+      </div>
+
+      <div class="controls-card">
+        <div class="controls-card__header">
+          <h2>Game Setup</h2>
+          <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false">
+            <span class="theme-toggle__icon" aria-hidden="true">🌙</span>
+            <span class="theme-toggle__label">Dark Mode</span>
+          </button>
+        </div>
+
+        <div class="control-grid">
+          <label class="field">
+            <span>Difficulty</span>
+            <select id="difficultySelect" aria-label="Select difficulty">
+              <option value="easy">Easy 4 x 4</option>
+              <option value="medium">Medium 6 x 6</option>
+              <option value="hard">Hard 8 x 8</option>
+            </select>
+          </label>
+
+          <button id="restartButton" class="primary-button" type="button">Restart Game</button>
+        </div>
+
+        <div class="stats-grid" aria-label="Game statistics">
+          <article class="stat-card">
+            <span class="stat-card__label">Moves</span>
+            <strong id="movesValue">0</strong>
+          </article>
+          <article class="stat-card">
+            <span class="stat-card__label">Time</span>
+            <strong id="timerValue">00:00</strong>
+          </article>
+          <article class="stat-card">
+            <span class="stat-card__label">Best</span>
+            <strong id="bestScoreValue">-</strong>
+          </article>
+        </div>
+      </div>
+    </header>
+
+    <main class="game-area">
+      <section class="board-panel" aria-labelledby="boardHeading">
+        <div class="board-panel__header">
+          <div>
+            <p class="section-tag">Play Area</p>
+            <h2 id="boardHeading">Match All The Pairs</h2>
+          </div>
+          <p id="statusMessage" class="status-message">Pick a difficulty and flip your first card.</p>
+        </div>
+
+        <div id="gameBoard" class="game-board" aria-live="polite"></div>
+      </section>
+
+      <aside class="info-panel">
+        <section class="info-card">
+          <p class="section-tag">How To Play</p>
+          <h2>Quick Instructions</h2>
+          <ul class="instructions-list">
+            <li>Choose a difficulty level and start flipping cards.</li>
+            <li>Only two cards can be revealed at the same time.</li>
+            <li>Matching pairs stay open, mismatches flip back after a moment.</li>
+            <li>Finish the board in the fewest moves and fastest time you can.</li>
+          </ul>
+        </section>
+
+        <section class="info-card">
+          <p class="section-tag">Tips</p>
+          <h2>Play Smart</h2>
+          <ul class="instructions-list">
+            <li>The timer begins on your first move, so take a breath first.</li>
+            <li>Try smaller boards to learn symbol positions before going harder.</li>
+            <li>Your best score is saved separately for each difficulty level.</li>
+          </ul>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div id="winModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+    <div class="modal__card">
+      <p class="section-tag">You Won</p>
+      <h2 id="winTitle">Nice memory.</h2>
+      <p id="winSummary" class="modal__summary"></p>
+      <div class="modal__actions">
+        <button id="playAgainButton" class="primary-button" type="button">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
