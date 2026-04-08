@@ -1,9 +1,9 @@
 (() => {
   const SYMBOL_POOL = [
-    "\uD83D\uDC36", "\uD83C\uDF55", "\uD83D\uDE97", "\uD83C\uDFAE", "\u2B50", "\uD83C\uDF4E", "\uD83C\uDF08", "\uD83E\uDD8B",
-    "\uD83C\uDFB5", "\uD83D\uDE80", "\uD83C\uDF3B", "\uD83C\uDF69", "\u26BD", "\uD83E\uDDE9", "\uD83E\uDD84", "\uD83C\uDF49",
-    "\uD83D\uDC31", "\uD83C\uDFAF", "\uD83C\uDF54", "\uD83D\uDEB2", "\uD83C\uDF19", "\uD83C\uDFB2", "\uD83C\uDF53", "\uD83D\uDEF8",
-    "\uD83D\uDC3C", "\uD83C\uDF88", "\uD83E\uDD55", "\uD83C\uDFC0", "\uD83C\uDF6A", "\uD83E\uDE90", "\uD83C\uDF35", "\uD83C\uDFB9"
+    "\uD83C\uDF4E", "\uD83C\uDF4C", "\uD83C\uDF47", "\uD83C\uDF52", "\uD83C\uDF49", "\uD83C\uDF53", "\uD83C\uDF4D", "\uD83C\uDF51",
+    "\uD83C\uDF50", "\uD83C\uDF4A", "\uD83C\uDF4B", "\uD83E\uDED0", "\uD83E\uDD5D", "\uD83C\uDF45", "\uD83C\uDF46", "\uD83E\uDD55",
+    "\uD83E\uDD51", "\uD83C\uDF3D", "\uD83E\uDEDB", "\uD83E\uDD65", "\uD83C\uDF44", "\uD83E\uDEF6", "\uD83C\uDF36", "\uD83E\uDDBC",
+    "\uD83E\uDD5C", "\uD83E\uDD5E", "\uD83E\uDD6F", "\uD83C\uDF6A", "\uD83C\uDF69", "\uD83C\uDF70", "\uD83C\uDF6D", "\uD83C\uDF6C"
   ];
 
   const DIFFICULTY_SETTINGS = {
@@ -184,6 +184,7 @@
       button.className = "memory-card";
       button.type = "button";
       button.dataset.cardId = card.id;
+      button.dataset.symbol = card.symbol;
       button.setAttribute("aria-label", "Hidden memory card");
       button.addEventListener("click", () => handleCardClick(card.id));
 
